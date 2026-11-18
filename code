@@ -1,0 +1,380 @@
+import gradio as gr
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+
+# ========================================== #
+# 1. ULTIMATE MASSIVE KNOWLEDGE BASE 
+# ========================================== #
+
+FOOD_CATEGORIES = {
+    "Lean Proteins": [
+        ("Chicken Breast", 165, 31.0, 0.0, 3.6, 0, 74, ["none"], "standard"),
+        ("Turkey Breast", 135, 30.0, 0.0, 1.1, 0, 68, ["none"], "standard"),
+        ("Cod Fillet", 82, 18.0, 0.0, 0.7, 0, 54, ["none"], "standard"),
+        ("Tuna Wild", 130, 28.0, 0.0, 1.3, 0, 50, ["none"], "premium"),
+        ("Egg Whites", 52, 11.0, 0.7, 0.2, 0, 166, ["none"], "budget"),
+        ("Shrimp Sautéed", 99, 24.0, 0.2, 0.3, 0, 111, ["none"], "premium"),
+        ("Venison Loin", 150, 30.0, 0.0, 2.4, 0, 55, ["none"], "premium"),
+        ("Egg Whole", 155, 13.0, 1.1, 11.0, 0, 124, ["none"], "budget"),
+        ("Greek Yogurt Nonfat", 59, 10.0, 3.6, 0.4, 15, 36, ["dairy"], "budget"),
+        ("Cottage Cheese Lowfat", 80, 11.0, 3.4, 2.3, 10, 364, ["dairy"], "budget")
+    ],
+    "Complex Carbohydrates": [
+        ("Brown Rice", 111, 2.6, 23.0, 0.9, 50, 4, ["none"], "budget"),
+        ("Quinoa", 120, 4.4, 21.3, 1.9, 53, 7, ["none"], "premium"),
+        ("Sweet Potato", 86, 1.6, 20.1, 0.1, 54, 55, ["none"], "budget"),
+        ("Rolled Oats", 389, 16.9, 66.3, 6.9, 55, 2, ["gluten"], "budget"),
+        ("Wild Rice", 101, 4.0, 21.0, 0.3, 45, 3, ["none"], "premium"),
+        ("Barley Premium", 354, 12.5, 73.5, 2.3, 25, 12, ["gluten"], "standard"),
+        ("Buckwheat Groats", 343, 13.3, 71.5, 3.4, 45, 1, ["none"], "standard"),
+        ("Spelt Grain", 338, 14.6, 70.2, 2.4, 50, 8, ["gluten"], "premium"),
+        ("Millet Hulled", 378, 11.0, 72.9, 4.2, 70, 5, ["none"], "budget"),
+        ("Rye Whole", 338, 10.3, 75.9, 1.6, 45, 6, ["gluten"], "standard")
+    ],
+    "Essential Lipids": [
+        ("Avocado Pulp", 160, 2.0, 8.5, 14.7, 10, 7, ["none"], "premium"),
+        ("Extra Virgin Olive Oil", 884, 0.0, 0.0, 100.0, 0, 2, ["none"], "standard"),
+        ("Almonds Premium", 579, 21.2, 21.7, 49.9, 15, 1, ["nuts"], "standard"),
+        ("Walnuts Raw", 654, 15.2, 13.7, 65.2, 15, 2, ["nuts"], "standard"),
+        ("Macadamia Nuts", 718, 7.9, 13.8, 75.8, 10, 5, ["nuts"], "premium"),
+        ("Chia Seeds", 486, 16.5, 42.1, 30.7, 15, 16, ["none"], "standard"),
+        ("Flaxseed Golden", 534, 18.3, 28.9, 42.2, 35, 30, ["none"], "budget"),
+        ("Pumpkin Seeds", 559, 30.2, 10.7, 49.0, 25, 7, ["none"], "budget"),
+        ("Pecans Halves", 691, 9.2, 13.9, 72.0, 10, 0, ["nuts"], "premium"),
+        ("Sesame Seeds Oil", 884, 0.0, 0.0, 100.0, 0, 1, ["none"], "standard")
+    ],
+    "Fibrous Micro-Dense Greens": [
+        ("Spinach Baby", 23, 2.9, 3.6, 0.4, 15, 79, ["none"], "standard"),
+        ("Broccoli Florets", 34, 2.8, 6.6, 0.4, 15, 33, ["none"], "budget"),
+        ("Kale Tuscan", 49, 4.3, 8.8, 0.9, 15, 38, ["none"], "premium"),
+        ("Asparagus Spears", 20, 2.2, 3.9, 0.1, 15, 2, ["none"], "premium"),
+        ("Brussels Sprouts", 43, 3.4, 9.0, 0.3, 20, 25, ["none"], "standard"),
+        ("Romaine Lettuce", 17, 1.2, 3.3, 0.3, 15, 8, ["none"], "budget"),
+        ("Swiss Chard", 19, 1.8, 3.7, 0.2, 15, 213, ["none"], "standard"),
+        ("Arugula Fresh", 25, 2.6, 3.7, 0.7, 15, 27, ["none"], "standard"),
+        ("Cabbage Savoy", 27, 2.0, 6.1, 0.1, 15, 28, ["none"], "budget"),
+        ("Cucumber Sliced", 15, 0.7, 3.6, 0.1, 15, 2, ["none"], "budget")
+    ],
+    "Plant Proteins": [
+        ("Tofu Extra Firm", 91, 10.0, 2.0, 5.0, 15, 14, ["none"], "budget"),
+        ("Tempeh Organic", 193, 19.0, 9.0, 11.0, 15, 9, ["none"], "standard"),
+        ("Edamame Pods", 122, 11.0, 10.0, 5.0, 15, 6, ["none"], "standard"),
+        ("Lentils Brown cooked", 116, 9.0, 20.0, 0.4, 25, 4, ["none"], "budget"),
+        ("Chickpeas cooked", 164, 8.9, 27.4, 2.6, 28, 24, ["none"], "budget"),
+        ("Black Beans cooked", 132, 8.9, 23.7, 0.5, 20, 5, ["none"], "budget"),
+        ("Seitan Premium", 370, 75.0, 14.0, 1.9, 30, 29, ["gluten"], "standard"),
+        ("Pea Protein Concentrate", 380, 80.0, 5.0, 6.0, 15, 400, ["none"], "premium"),
+        ("Hemp Protein", 400, 50.0, 12.0, 11.0, 15, 100, ["none"], "premium"),
+        ("Mung Beans cooked", 105, 7.0, 19.0, 0.4, 25, 2, ["none"], "budget")
+    ]
+}
+
+# Dynamic Generation Matrix scaled up to 10,000+ items
+DIET_DICTIONARY = {}
+for cat_name, base_items in FOOD_CATEGORIES.items():
+    for base in base_items:
+        for i in range(1, 201): # Scale index up to 200 items per baseline object
+            var_name = f"{base[0]} DX-{i:03d}"
+            scale_factor = 0.80 + (0.002 * i)
+            calories_per_100g = round(base[1] * scale_factor, 1)
+            protein_g = round(base[2] * scale_factor, 1)
+            carbs_g = round(base[3] * scale_factor, 1)
+            fat_g = round(base[4] * scale_factor, 1)
+            glycemic_index = max(0, min(100, int(base[5] + i % 5)))
+            sodium_mg = max(0, int(base[6] * scale_factor))
+            allergens = list(base[7])
+
+            tier_list = ["budget", "standard", "premium"]
+            budget_tier = tier_list[(i + len(base[0])) % 3]
+
+            DIET_DICTIONARY[var_name] = {
+                "name": var_name,
+                "category": cat_name,
+                "calories_per_100g": calories_per_100g,
+                "protein_g": protein_g,
+                "carbs_g": carbs_g,
+                "fat_g": fat_g,
+                "glycemic_index": glycemic_index,
+                "sodium_mg": sodium_mg,
+                "allergens": allergens,
+                "budget_tier": budget_tier
+            }
+
+# Extreme Dynamic Biomechanical Workout taxonomies
+EXERCISE_DICTIONARY = {
+    "Horizontal Push": [
+        {"name": "Barbell Bench Press", "joint_loading_profile": "high", "average_met_value": 6.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Dumbbell Flat Press", "joint_loading_profile": "medium", "average_met_value": 5.5, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Deficit Push-Ups (Weighted)", "joint_loading_profile": "medium", "average_met_value": 4.5, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Resistance Band Chest Fly", "joint_loading_profile": "low", "average_met_value": 3.5, "mechanical_type": "isolation", "env": "Home Workout"}
+    ],
+    "Vertical Push": [
+        {"name": "Standing Military Press", "joint_loading_profile": "high", "average_met_value": 6.5, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Handstand Push-Up Progression", "joint_loading_profile": "high", "average_met_value": 7.0, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Resistance Band Overhead Press", "joint_loading_profile": "medium", "average_met_value": 4.5, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Pike Push-Ups", "joint_loading_profile": "medium", "average_met_value": 5.0, "mechanical_type": "compound", "env": "Home Workout"}
+    ],
+    "Horizontal Pull": [
+        {"name": "Bent-Over Barbell Row", "joint_loading_profile": "high", "average_met_value": 6.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Inverted Bodyweight Row", "joint_loading_profile": "medium", "average_met_value": 4.5, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Doorway Resistance Band Row", "joint_loading_profile": "low", "average_met_value": 3.8, "mechanical_type": "compound", "env": "Home Workout"}
+    ],
+    "Vertical Pull": [
+        {"name": "Weighted Pullups", "joint_loading_profile": "high", "average_met_value": 7.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Classic Pullups / Chinups", "joint_loading_profile": "medium", "average_met_value": 6.0, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Resistance Band Lat Pulldown", "joint_loading_profile": "low", "average_met_value": 3.5, "mechanical_type": "isolation", "env": "Home Workout"}
+    ],
+    "Quad-Dominant Lower": [
+        {"name": "Barbell Back Squat", "joint_loading_profile": "high", "average_met_value": 8.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Bulgarian Split Squats (Bodyweight)", "joint_loading_profile": "medium", "average_met_value": 6.0, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Goblet Squat (Water Jug/Band)", "joint_loading_profile": "medium", "average_met_value": 5.5, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "1.5 Rep Bodyweight Air Squats", "joint_loading_profile": "low", "average_met_value": 4.0, "mechanical_type": "isolation", "env": "Home Workout"}
+    ],
+    "Posterior Chain Lower": [
+        {"name": "Conventional Deadlift", "joint_loading_profile": "high", "average_met_value": 9.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Single-Leg Romanian Deadlift (Band)", "joint_loading_profile": "medium", "average_met_value": 5.5, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Glute Bridges (Single-Leg)", "joint_loading_profile": "low", "average_met_value": 3.5, "mechanical_type": "isolation", "env": "Home Workout"}
+    ],
+    "Core Stability": [
+        {"name": "Ab Wheel Rollouts", "joint_loading_profile": "medium", "average_met_value": 4.0, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Plank Knee-to-Elbow Holds", "joint_loading_profile": "low", "average_met_value": 3.0, "mechanical_type": "isolation", "env": "Home Workout"},
+        {"name": "Hanging Leg Raises", "joint_loading_profile": "medium", "average_met_value": 4.5, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Lying Hollow Body Holds", "joint_loading_profile": "low", "average_met_value": 3.5, "mechanical_type": "isolation", "env": "Home Workout"}
+    ],
+    "High-Intensity Conditioning": [
+        {"name": "Kettlebell Swings", "joint_loading_profile": "medium", "average_met_value": 9.5, "mechanical_type": "compound", "env": "Gym"},
+        {"name": "Burpee-to-Tuck Jump Intervals", "joint_loading_profile": "medium", "average_met_value": 11.0, "mechanical_type": "compound", "env": "Home Workout"},
+        {"name": "Shadow Boxing Sprints", "joint_loading_profile": "low", "average_met_value": 8.0, "mechanical_type": "compound", "env": "Home Workout"}
+    ]
+}
+
+# ========================================== #
+# 2. RUN TIME CALCULATION ENGINE
+# ========================================== #
+
+def run_metascience_engine(age, weight, height, bf, sex, activity, goal, diet_pref, food_budget, workout_loc, insulin, sodium, celiac, lactose, nuts):
+    try:
+        age = float(age)
+        weight = float(weight)
+        height = float(height)
+        bf = float(bf)
+    except ValueError:
+        return "[ERROR] Invalid biometric input coordinates.", None
+
+    # Extended Biometric Calculations
+    lbm = weight * (1.0 - (bf / 100.0))
+    bmr = 370.0 + (21.6 * lbm)
+    bsa = math.sqrt((height * weight) / 3600.0)
+
+    # Advanced Water Requirements (Liters/day)
+    base_water = weight * 0.033
+    water_allowance = base_water + (1.2 if activity != "Sedentary (1.2)" else 0.0)
+
+    # Custom Sodium Limit estimation (mg/day)
+    sodium_limit = 1500 if sodium else 2300
+
+    act_map = {
+        "Sedentary (1.2)": 1.2,
+        "Lightly Active (1.375)": 1.375,
+        "Moderately Active (1.55)": 1.55,
+        "Very Active (1.725)": 1.725,
+        "Elite Athlete (1.9)": 1.9
+    }
+    activity_multiplier = act_map.get(activity, 1.55)
+    tdee = bmr * activity_multiplier
+
+    # Pathway Target calculation
+    target_calories = tdee
+    protein_g, fats_g, carbs_g = 0.0, 0.0, 0.0
+
+    if goal == "Fat Loss Deficit":
+        target_calories = tdee * 0.8
+        protein_g = 2.4 * lbm
+        fats_g = (target_calories * 0.25) / 9.0
+        remaining_cals = target_calories - (protein_g * 4.0) - (fats_g * 9.0)
+        carbs_g = max(0.0, remaining_cals / 4.0)
+    elif goal == "Lean Muscle Hypertrophy":
+        target_calories = tdee * 1.1
+        protein_g = 2.0 * weight
+        fats_g = (target_calories * 0.3) / 9.0
+        remaining_cals = target_calories - (protein_g * 4.0) - (fats_g * 9.0)
+        carbs_g = max(0.0, remaining_cals / 4.0)
+    else:
+        target_calories = tdee
+        protein_g = (target_calories * 0.4) / 4.0
+        fats_g = (target_calories * 0.3) / 9.0
+        carbs_g = (target_calories * 0.3) / 4.0
+
+    allergies = []
+    if celiac: allergies.append("gluten")
+    if lactose: allergies.append("dairy")
+    if nuts: allergies.append("nuts")
+
+    # Pie & Electrolyte Double Plot Generation
+    tot_g = max(1.0, protein_g + carbs_g + fats_g)
+    pct_p = (protein_g / tot_g) * 100
+    pct_c = (carbs_g / tot_g) * 100
+    pct_f = (fats_g / tot_g) * 100
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5), facecolor='#1E293B')
+    ax1.set_facecolor('#1E293B')
+    ax2.set_facecolor('#1E293B')
+
+    # Pie Chart
+    labels = [f'Protein\n({int(pct_p)}%)', f'Carbs\n({int(pct_c)}%)', f'Fat\n({int(pct_f)}%)']
+    ax1.pie([pct_p, pct_c, pct_f], labels=labels, autopct='%1.1f%%', startangle=90,
+           colors=['#38BDF8', '#34D399', '#F59E0B'], textprops=dict(color='#F1F5F9', weight='bold', fontsize=9),
+           wedgeprops=dict(width=0.4, edgecolor='#1E293B', linewidth=2))
+    ax1.set_title("TARGET MACROS RATIOS", color='#38BDF8', fontsize=10, fontweight='bold')
+
+    # Bar Chart
+    bars = ['Water (L)', 'Sodium (100mg)', 'BMR (100kCal)']
+    values = [water_allowance, sodium_limit / 100.0, bmr / 100.0]
+    ax2.bar(bars, values, color=['#38BDF8', '#F43F5E', '#10B981'], width=0.4)
+    ax2.tick_params(colors='#F1F5F9', labelsize=9)
+    ax2.set_title("BIOMETRIC TARGET BASELINES", color='#38BDF8', fontsize=10, fontweight='bold')
+    for spine in ax2.spines.values():
+        spine.set_color('#334155')
+
+    # Filter Foods
+    filtered_foods = []
+    for v in DIET_DICTIONARY.values():
+        if any(al in v["allergens"] for al in allergies):
+            continue
+
+        if diet_pref == "Vegan":
+            if v["category"] == "Lean Proteins" or "dairy" in v["allergens"]:
+                continue
+        elif diet_pref == "Vegetarian":
+            if v["category"] == "Lean Proteins" and "dairy" not in v["allergens"]:
+                continue
+
+        if food_budget != "All Tiers":
+            if v["budget_tier"].lower() != food_budget.lower():
+                continue
+
+        filtered_foods.append(v)
+
+    proteins_list = [f for f in filtered_foods if f["category"] in ["Lean Proteins", "Plant Proteins"]]
+    carbs_list = [f for f in filtered_foods if f["category"] == "Complex Carbohydrates"]
+    greens_list = [f for f in filtered_foods if f["category"] == "Fibrous Micro-Dense Greens"]
+    fats_list = [f for f in filtered_foods if f["category"] == "Essential Lipids"]
+
+    p_src = proteins_list[0] if proteins_list else {"name": "Hemp Protein Base", "calories_per_100g": 400, "protein_g": 50, "carbs_g": 12, "fat_g": 11}
+    c_src = carbs_list[0] if carbs_list else {"name": "Steamed White Rice", "calories_per_100g": 130, "protein_g": 2, "carbs_g": 28, "fat_g": 0}
+    g_src = greens_list[0] if greens_list else {"name": "Steamed Broccoli", "calories_per_100g": 35, "protein_g": 3, "carbs_g": 7, "fat_g": 0}
+    f_src = fats_list[0] if fats_list else {"name": "Extra Virgin Olive Oil", "calories_per_100g": 884, "protein_g": 0, "carbs_g": 0, "fat_g": 100}
+
+    meal_scale = 1.0 / 3.0
+    p_weight = max(10, int(((protein_g * meal_scale) / max(0.1, p_src["protein_g"])) * 100))
+    c_weight = max(10, int(((carbs_g * meal_scale) / max(0.1, c_src["carbs_g"])) * 100))
+    f_weight = max(5, int(((fats_g * meal_scale) / max(0.1, f_src["fat_g"])) * 100))
+
+    report = []
+    report.append("=" * 65)
+    report.append("             QUANTUM METASCIENCE ULTIMATE EXTREME PLAN")
+    report.append("=" * 65)
+    report.append(f"DAILY TARGETS: {int(target_calories)} kCal | LBM: {lbm:.2f} kg | BSA: {bsa:.2f} m²")
+    report.append(f"DIETARY PATTERN: {diet_pref} ({food_budget}) | Target: P: {int(protein_g)}g | C: {int(carbs_g)}g | F: {int(fats_g)}g")
+    report.append(f"DAILY WATER THRESHOLD: {water_allowance:.2f} Liters | SODIUM BUDGET: {sodium_limit} mg\n")
+
+    for meal in ["BREAKFAST PROTOCOL", "LUNCH PROTOCOL", "DINNER PROTOCOL"]:
+        report.append(f"[+] {meal}")
+        report.append(f"   - {p_weight}g of {p_src['name']} (Protein Base)")
+        report.append(f"   - {c_weight}g of {c_src['name']} (Complex Carbohydrates)")
+        report.append(f"   - 100g of {g_src['name']} (Micronutrient Dense Greens)")
+        report.append(f"   - {f_weight}g of {f_src['name']} (Lipid System)")
+        meal_c = (p_weight*p_src['calories_per_100g'] + c_weight*c_src['calories_per_100g'] + 100*g_src['calories_per_100g'] + f_weight*f_src['calories_per_100g'])/100
+        report.append(f"   * Projected Meal Energy: ~{int(meal_c)} kCal\n")
+
+    joint_limit_profile = "high" if age < 50 else "low"
+    report.append("=" * 65)
+    report.append(f"         3-DAY BIOMECHANICAL STRENGTH & CONDITIONING ({workout_loc.upper()})")
+    report.append("=" * 65)
+
+    workout_splits = [
+        ("DAY 1 - ANTERIOR KINETIC CHAIN (PUSH)", ["Horizontal Push", "Vertical Push", "Core Stability"]),
+        ("DAY 2 - POSTERIOR KINETIC CHAIN (PULL)", ["Horizontal Pull", "Vertical Pull", "High-Intensity Conditioning"]),
+        ("DAY 3 - LOWER EXTENSION & COMPRESSION (LEGS)", ["Quad-Dominant Lower", "Posterior Chain Lower", "Core Stability"])
+    ]
+
+    for day_title, movement_types in workout_splits:
+        report.append(f"\n{day_title}")
+        for m_type in movement_types:
+            candidates = [ex for ex in EXERCISE_DICTIONARY.get(m_type, []) if ex["env"].lower() == workout_loc.lower()]
+            chosen = None
+            for cand in candidates:
+                if joint_limit_profile == "low":
+                    if cand["joint_loading_profile"] in ["low", "medium"]:
+                        chosen = cand
+                        break
+                else:
+                    if cand["joint_loading_profile"] == "high":
+                        chosen = cand
+                        break
+            if not chosen and candidates: chosen = candidates[0]
+            if chosen:
+                reps_desc = "3 Sets x 12 Reps"
+                if chosen["mechanical_type"] == "compound":
+                    reps_desc = "4 Sets x 6 Reps (Strength Load)" if age < 50 else "3 Sets x 10 Reps"
+                report.append(f"   -> [{m_type}] {chosen['name']}")
+                report.append(f"      Load Profile: {chosen['joint_loading_profile'].upper()} | MET: {chosen['average_met_value']} | {reps_desc}")
+
+    return "\n".join(report), fig
+
+# --- GRADIO MODERN THEMED INTERFACE LAYOUT ---
+with gr.Blocks() as interface:
+    gr.Markdown("# 🧬 AI based fitness planner\n### Extreme Scaled Physical & Nutrition Intelligence Terminal")
+
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("### 🛠️ BIOMETRIC PROTOCOLS & GOALS")
+            age = gr.Slider(minimum=1, maximum=120, value=30, label="Age (Years)")
+            weight = gr.Slider(minimum=30, maximum=250, value=80, label="Total Body Mass (kg)")
+            height = gr.Slider(minimum=100, maximum=250, value=180, label="Stature Height (cm)")
+            bf = gr.Slider(minimum=3, maximum=60, value=15, label="Measured Body Fat %")
+            sex = gr.Radio(["Male", "Female"], value="Male", label="Biological Sex")
+
+            activity = gr.Dropdown([
+                "Sedentary (1.2)", "Lightly Active (1.375)", "Moderately Active (1.55)", "Very Active (1.725)", "Elite Athlete (1.9)"
+            ], value="Moderately Active (1.55)", label="Activity Coefficient")
+
+            goal = gr.Dropdown([
+                "Fat Loss Deficit", "Lean Muscle Hypertrophy", "Clean Homeostatic Maintenance"
+            ], value="Lean Muscle Hypertrophy", label="Metascience Strategy Pathway")
+
+            diet_pref = gr.Dropdown([
+                "Non-Vegetarian", "Vegetarian", "Vegan"
+            ], value="Non-Vegetarian", label="Dietary Reference Pattern")
+
+            food_budget = gr.Dropdown([
+                "All Tiers", "Budget", "Standard", "Premium"
+            ], value="All Tiers", label="Financial Food Budget Filter")
+
+            workout_loc = gr.Radio([
+                "Gym", "Home Workout"
+            ], value="Gym", label="Workout Environment")
+
+            insulin = gr.Dropdown(["Low", "Normal", "High"], value="Normal", label="Insulin Sensitivity Threshold")
+
+            gr.Markdown("### ⚕️ CLINICAL VARIANCES & ALLERGENS")
+            sodium = gr.Checkbox(label="Sodium Sensitivity Adaptation Protocol")
+            celiac = gr.Checkbox(label="Celiac Protection Protocol (Gluten Free)")
+            lactose = gr.Checkbox(label="Lactose Intolerance Protection")
+            nuts = gr.Checkbox(label="Severe Nut Allergy Restriction")
+
+            submit_btn = gr.Button("GENERATE METASCIENCE PLAN", variant="primary")
+
+        with gr.Column(scale=2):
+            gr.Markdown("### 📊 HIGH-FIDELITY DASHBOARD")
+            chart_output = gr.Plot(label="Active Micronutrient Breakdown")
+            plan_output = gr.Textbox(label="Calculated Metascience Strategy Yield", lines=25, max_lines=40)
+
+    submit_btn.click(
+        run_metascience_engine,
+        inputs=[age, weight, height, bf, sex, activity, goal, diet_pref, food_budget, workout_loc, insulin, sodium, celiac, lactose, nuts],
+        outputs=[plan_output, chart_output]
+    )
+
+interface.launch(share=True, debug=False)
